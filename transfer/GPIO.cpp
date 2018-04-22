@@ -1,5 +1,4 @@
 #include "GPIO.h"
-#include "util.h"
 #include<iostream>
 #include<fstream>
 #include<string>
@@ -19,7 +18,7 @@ namespace exploringBB {
         this->number = number;
         this->debounceTime = 0;
         this->togglePeriod = 100;
-        this->toggleNumber = -1;
+        this->toggleNumber = -1;    // infinite number
         this->callbackFunction = NULL;
         this->threadRunning = false;
 
@@ -32,7 +31,7 @@ namespace exploringBB {
         usleep(250000); // 250ms delay
     }
 
-    /* int GPIO::write(string path, string filename, string value)
+    int GPIO::write(string path, string filename, string value)
     {
         ofstream fs;
         fs.open((path + filename).c_str());
@@ -44,9 +43,9 @@ namespace exploringBB {
         fs << value;
         fs.close();
         return 0;
-    } */
+    } 
 
-    /* string GPIO::read(string path, string filename)
+    string GPIO::read(string path, string filename)
     {
         ifstream fs;
         fs.open((path + filename).c_str());
@@ -58,70 +57,70 @@ namespace exploringBB {
         getline(fs, input);
         fs.close();
         return input;
-    } */
+    } 
 
-    /* int GPIO::write(string path, string filename, int value)
+    int GPIO::write(string path, string filename, int value)
     {
         stringstream s;
         s << value;
-        return write(path, filename, s.str());
-    } */
+        return this->write(path, filename, s.str());
+    } 
 
     // private
     int GPIO::exportGPIO()
     {
-        return write(GPIO_PATH, "export", this->number);
+        return this->write(GPIO_PATH, "export", this->number);
     }
 
     // private
     int GPIO::unexportGPIO()
     {
-        return write(GPIO_PATH, "unexport", this->number);
+        return this->write(GPIO_PATH, "unexport", this->number);
     }
 
-    int GPIO::setDirection(GPIO::DIRECTION dir)
+    int GPIO::setDirection(GPIO_DIRECTION dir)
     {
         switch(dir)
         {
             case INPUT: 
-                return write(this->path, "direction", "in");
+                return this->write(this->path, "direction", "in");
                 break;
             case OUTPUT:
-                return write(this->path, "direction", "out");
+                return this->write(this->path, "direction", "out");
                 break;
         }
         return -1;
     }
 
-    int GPIO::setValue(GPIO::VALUE value)
+    int GPIO::setValue(GPIO_VALUE value)
     {
         switch(value)
         {
             case HIGH: 
-                return write(this->path, "value", "1");
+                return this->write(this->path, "value", "1");
                 break;
             case LOW: 
-                return write(this->path, "value", "0");
+                return this->write(this->path, "value", "0");
                 break;
         }
         return -1;
     }
 
-    int GPIO::setEdgeType(GPIO::EDGE value)
+    int GPIO::setEdgeType(GPIO_EDGE value)
     {
         switch(value)
         {
             case NONE: 
-                return write(this->path, "edge", "none");
+                return this->write(this->path, "edge", "none");
                 break;
             case RISING: 
-                return write(this->path, "edge", "rising");
+                return this->write(this->path, "edge", "rising");
                 break;
             case FALLING: 
-                return write(this->path, "edge", "falling");
+                return this->write(this->path, "edge", "falling");
                 break;
             case BOTH: 
-                return write(this->path, "edge", "both");
+                return this->write(this->path, "edge", "both");
                 break;
         }
         return -1;
@@ -130,9 +129,9 @@ namespace exploringBB {
     int GPIO::setActiveLow(bool isLow)
     {
         if (isLow)
-            return write(this->path, "active_low", "1");
+            return this->write(this->path, "active_low", "1");
         else    
-            return write(this->path, "active_low", "0");
+            return this->write(this->path, "active_low", "0");
     }
 
     int GPIO::setActiveHigh()
@@ -140,27 +139,27 @@ namespace exploringBB {
         return this->setActiveLow(false);
     }
 
-    GPIO::VALUE GPIO::getValue()
+    GPIO_VALUE GPIO::getValue()
     {
-        string input = read(this->path, "value");   // from util class
+        string input = this->read(this->path, "value");
         if ("0" == input)
             return LOW;
         else    
             return HIGH;
     }
 
-    GPIO::DIRECTION GPIO::getDirection()
+    GPIO_DIRECTION GPIO::getDirection()
     {
-        string input = read(this->path, "direction");   // from util class
+        string input = this->read(this->path, "direction");
         if ("in" == input)
             return INPUT;
         else    
             return OUTPUT;
     }
 
-    GPIO::EDGE GPIO::getEdgeType()
+    GPIO_EDGE GPIO::getEdgeType()
     {
-        string input = read(this->path, "edge");   // from util class
+        string input = this->read(this->path, "edge");
         if ("rising" == input)
             return RISING;
         else if ("falling" == input)
@@ -177,7 +176,7 @@ namespace exploringBB {
         return 0;
     }
 
-    int GPIO::streamWrite(GPIO::VALUE value)
+    int GPIO::streamWrite(GPIO_VALUE value)
     {
         stream << value << std::flush;
         return 0;
@@ -212,7 +211,7 @@ namespace exploringBB {
         this->togglePeriod = time;
         this->threadRunning = true;
 
-        // create thread, put handle into this->thread, invoke threadedToggle() and pass GPIO object to threadedToggle()
+        // create thread, put handle into this->thread, invoke threadedToggle() and pass GPIO object (this) to threadedToggle()
         // returns 0 back to caller when thread successfully created
         if (pthread_create(&this->thread, NULL, &threadedToggle, static_cast<void*>(this)))
         {
@@ -224,10 +223,10 @@ namespace exploringBB {
     }
 
     //  friend function
-    //  completes and returns when toggleNumber reaches zero
+    //  executes on separate thread and returns when toggleNumber reaches zero
     void * threadedToggle(void * value)
     {
-        GPIO * gpio = static_cast<GPIO*>(value);    // cast back to GPIO object
+        GPIO * gpio = static_cast<GPIO*>(value);    // cast argument back to GPIO object
         bool isHigh = (bool) gpio->getValue();
         while (gpio->threadRunning)
         {
@@ -241,7 +240,7 @@ namespace exploringBB {
         return 0;
     }
 
-    // blocking poll
+    // blocking poll, waits for edge
     int GPIO::waitForEdge()
     {
         this->setDirection(INPUT);
@@ -301,12 +300,13 @@ namespace exploringBB {
         GPIO * gpio = static_cast<GPIO*>(value); // cast to pointer to GPIO object
         while (gpio->threadRunning)
         {
-            gpio->callbackFunction(gpio->waitForEdge());
+            gpio->callbackFunction(gpio->waitForEdge());    // blocks, waiting for edge, then calls callbackFunction
             usleep(gpio->debounceTime * 1000);
         }
         return 0;
     }
 
+    // waits for edge on a new thread, allowing main thread to continue
     int GPIO::waitForEdge(CallbackType callback)
     {
         this->threadRunning = true;

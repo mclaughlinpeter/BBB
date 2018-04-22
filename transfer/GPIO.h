@@ -12,25 +12,25 @@ namespace exploringBB {
 
     typedef int (*CallbackType)(int);   // CallbackType is a pointer to a function returning int and taking an int parameter
     
+    enum GPIO_DIRECTION { INPUT, OUTPUT };
+    enum GPIO_VALUE { LOW = 0, HIGH = 1 };
+    enum GPIO_EDGE { NONE, RISING, FALLING, BOTH };
+
     class GPIO {
-        public:
-            enum DIRECTION { INPUT, OUTPUT };
-            enum VALUE { LOW = 0, HIGH = 1 };
-            enum EDGE { NONE, RISING, FALLING, BOTH };
         private:
             int number; // pin number, ctor argument
             int debounceTime;
             string name;    //  "gpio" + number
-            string path;    //  path to pin files
+            string path;    //  full path to pin files
         public:
             GPIO(int number);
             virtual int getNumber() { return number; }
 
             //  General I/O settings
-            virtual int setDirection(GPIO::DIRECTION);
-            virtual GPIO::DIRECTION getDirection();
-            virtual int setValue(GPIO::VALUE);
-            virtual GPIO::VALUE getValue();
+            virtual int setDirection(GPIO_DIRECTION);
+            virtual GPIO_DIRECTION getDirection();
+            virtual int setValue(GPIO_VALUE);
+            virtual GPIO_VALUE getValue();
             virtual int toggleOutput();
             virtual int setActiveLow(bool isLow = true);    // low = 1, high = 0
             virtual int setActiveHigh();    // default
@@ -38,7 +38,7 @@ namespace exploringBB {
 
             //  Advanced output
             virtual int streamOpen();
-            virtual int streamWrite(GPIO::VALUE);
+            virtual int streamWrite(GPIO_VALUE);
             virtual int streamClose();
 
             virtual int toggleOutput(int time);
@@ -47,18 +47,18 @@ namespace exploringBB {
             virtual void toggleCancel() { this->threadRunning = false; }
 
             //  Advanced input
-            virtual int setEdgeType(GPIO::EDGE);
-            virtual GPIO::EDGE getEdgeType();
-            virtual int waitForEdge();
-            virtual int waitForEdge(CallbackType callback);
+            virtual int setEdgeType(GPIO_EDGE);
+            virtual GPIO_EDGE getEdgeType();
+            virtual int waitForEdge();  // waits until button is pressed
+            virtual int waitForEdge(CallbackType callback); // threaded with callback
             virtual void waitForEdgeCancel() { this->threadRunning = false; }
 
             virtual ~GPIO();    // dtor will unexport the pin
 
         private:
-            // int write(string path, string filename, string value);
-            // int write(string path, string filename, int value);
-            // string read(string path, string filename);
+            int write(string path, string filename, string value);
+            int write(string path, string filename, int value);
+            string read(string path, string filename);
             int exportGPIO();
             int unexportGPIO();
             ofstream stream;
