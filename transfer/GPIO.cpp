@@ -230,8 +230,8 @@ namespace exploringBB {
         bool isHigh = (bool) gpio->getValue();
         while (gpio->threadRunning)
         {
-            if (isHigh) gpio->setValue(GPIO::HIGH);
-            else gpio->setValue(GPIO::LOW);
+            if (isHigh) gpio->setValue(HIGH);
+            else gpio->setValue(LOW);
             usleep(gpio->togglePeriod * 500);
             isHigh = !isHigh;
             if (gpio->toggleNumber > 0) gpio->toggleNumber--;
